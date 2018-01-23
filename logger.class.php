@@ -7,7 +7,6 @@
  * Last Update: Friday, 19 January 2018
  * Description:
  *    A class to log php errors, custom messages and more.
- *    The log data can either be saved into a file or database.
  *
  * Copyright by adistoe | All rights reserved.
  */
