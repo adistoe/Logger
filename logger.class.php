@@ -123,7 +123,7 @@ class Logger
     }
 
     /**
-     * Creates needed database tables for log mode "database"
+     * Creates needed database tables
      */
     public function createDatabaseTables() {
         if ($this->db->query('
