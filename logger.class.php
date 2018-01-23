@@ -3,8 +3,8 @@
  * Class: Logger
  * Author: adistoe
  * Website: https://www.adistoe.ch
- * Version: 1.0.0
- * Last Update: Friday, 19 January 2018
+ * Version: 1.0.1
+ * Last Update: Thursday, 23 January 2018
  * Description:
  *    A class to log php errors, custom messages and more.
  *
@@ -12,12 +12,80 @@
  */
 class Logger
 {
+    /**
+     * ========================================
+     * ============ Configuration =============
+     * ========================================
+     *
+     * Change the following part to fit your requirements.
+     */
+
+    // =======================
+    // ===== PHP errors ======
+    // =======================
+
+    // Specifies if PHP errors should be handled by this class
+    private $handlePhpErrors = true;
+
+    // Specifies if PHP errors should be saved
+    private $savePhpErrors = true;
+
+    // Specifies if PHP errors should be displayed on the screen
+    private $showPhpErrors = true;
+
+    // =======================
+    // === Custom messages ===
+    // =======================
+
+    // Specifies if the custom log messages should be saved
+    private $saveCustomMessages = true;
+
+    // Specifies if the custom log messages should be displayed on the screen
+    private $showCustomMessages = true;
+
+    // =======================
+    // ====== Database =======
+    // =======================
+
+    // Prefix and suffix for tables
+    private $prefix = '';
+    private $suffix = '';
+
+    // =======================
+    // ======== Other ========
+    // =======================
+
+    // Specifies, which errors should be logged and which ignored
+    private $errorLogActiveStatus = Array(
+        'E_ERROR'             => true,
+        'E_WARNING'           => true,
+        'E_PARSE'             => true,
+        'E_NOTICE'            => true,
+        'E_CORE_ERROR'        => true,
+        'E_CORE_WARNING'      => true,
+        'E_COMPILE_ERROR'     => true,
+        'E_COMPILE_WARNING'   => true,
+        'E_USER_ERROR'        => true,
+        'E_USER_WARNING'      => true,
+        'E_USER_NOTICE'       => true,
+        'E_STRICT'            => true,
+        'E_RECOVERABLE_ERROR' => true,
+        'E_DEPRECATED'        => true,
+        'E_USER_DEPRECATED'   => true,
+        'E_ALL'               => true
+    );
+
+    // Format to display dates
+    private $dateFormat = 'd.m.Y - H:i:s';
+
+    /**
+     * ========================================
+     * ======= End of the configuration =======
+     * ========================================
+     */
+
+    // Do not touch these variables
     private $db;
-    private $handlePhpErrors;
-    private $savePhpErrors;
-    private $showPhpErrors;
-    private $saveCustomMessages;
-    private $showCustomMessages;
     private $errorCodes = Array(
         0     => 'CUSTOM_LOG_MESSAGE',
         1     => 'E_ERROR',
@@ -38,39 +106,15 @@ class Logger
         32767 => 'E_ALL'
     );
 
-    // Prefix (before table name) and suffix (after table name) for tables
-    private $prefix = '';
-    private $suffix = '';
-
-    // Format to display dates
-    private $dateFormat = 'd.m.Y - H:i:s';
-
     /**
      * Constructor
      * Initializes the class
      *
      * @param object $pdo Database object (PDO)
-     * @param boolean $handlePhpErrors Logger handle mode for PHP errors
-     * @param boolean $showPhpErrors PHP errors display mode
-     * @param boolean $savePhpErrors PHP errors database save mode
-     * @param boolean $showCustomMessages Log display mode
-     * @param boolean $saveCustomMessages Log database save mode
      */
-    public function __construct(
-        $pdo,
-        $handlePhpErrors = true,
-        $savePhpErrors = true,
-        $showPhpErrors = true,
-        $saveCustomMessages = true,
-        $showCustomMessages = true
-    )
+    public function __construct($pdo)
     {
         $this->db = $pdo;
-        $this->handlePhpErrors = $handlePhpErrors;
-        $this->showPhpErrors = $showPhpErrors;
-        $this->savePhpErrors = $savePhpErrors;
-        $this->showCustomMessages = $showCustomMessages;
-        $this->saveCustomMessages = $saveCustomMessages;
 
         if ($this->handlePhpErrors) {
             set_error_handler(array($this, 'logPhpError'));
@@ -81,14 +125,14 @@ class Logger
     /**
      * Creates needed database tables for log mode "database"
      */
-    public function createTables() {
+    public function createDatabaseTables() {
         if ($this->db->query('
             CREATE TABLE ' . $this->prefix . 'log' . $this->suffix . '(
-                ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-                level INT,
+                ID INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                level INT UNSIGNED,
                 message TEXT,
                 file TEXT,
-                line INT,
+                line INT UNSIGNED,
                 date DATETIME NOT NULL DEFAULT NOW()
             )
         ')) {
@@ -231,6 +275,10 @@ class Logger
      * @param $line Line number of the error
      */
     public function logPhpError($level, $msg, $file, $line) {
+        if (!$this->errorLogActiveStatus[$this->errorCodes[$level]]) {
+            return;
+        }
+
         if ($this->showPhpErrors) {
             echo
                 '<hr>
