@@ -86,6 +86,7 @@ class Logger
 
     // Do not touch these variables
     private $db;
+    private $notes;
     private $errorCodes = Array(
         0     => 'CUSTOM_LOG_MESSAGE',
         1     => 'E_ERROR',
@@ -111,10 +112,12 @@ class Logger
      * Initializes the class
      *
      * @param object $pdo Database object (PDO)
+     * @param object $notes Additional information to be saved on logging
      */
-    public function __construct($pdo)
+    public function __construct($pdo, $notes = NULL)
     {
         $this->db = $pdo;
+        $this->notes = $notes;
 
         if ($this->handlePhpErrors) {
             set_error_handler(array($this, 'logPhpError'));
@@ -124,8 +127,11 @@ class Logger
 
     /**
      * Creates needed database tables
+     *
+     * @return boolean Returns if the tables were created
      */
-    public function createDatabaseTables() {
+    public function createDatabaseTables()
+    {
         if ($this->db->query('
             CREATE TABLE ' . $this->prefix . 'log' . $this->suffix . '(
                 ID INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -133,6 +139,7 @@ class Logger
                 message TEXT,
                 file TEXT,
                 line INT UNSIGNED,
+                notes TEXT,
                 date DATETIME NOT NULL DEFAULT NOW()
             )
         ')) {
@@ -178,17 +185,43 @@ class Logger
     /**
      * Logs custom (user specified) messages
      *
-     * @param $msg Message
-     * @param $file File
-     * @param $line Line number
-     * @param $level Error level (Shouldn't be changed normally)
+     * @param string $msg Message
+     * @param string $file File
+     * @param int $line Line number
+     * @param string $notes Additional information
+     *
+     * @return boolean Returns if the log entry was handled correctly
      */
-    public function logCustomMessage($msg, $file = NULL, $line = NULL, $level = 0) {
+    public function logCustomMessage(
+        $msg,
+        $file = NULL,
+        $line = NULL,
+        $notes = NULL
+    )
+    {
+        if ($notes == NULL) {
+            $notes = $this->notes;
+        }
+
         if ($this->showCustomMessages) {
+            $htmlNotes = '';
+
+            if ($notes != NULL) {
+                $htmlNotes =
+                    "<tr>
+                        <td>
+                            Notes:
+                        </td>
+                        <td>
+                            $notes
+                        </td>
+                    </tr>";
+            }
+
             echo
-                '<hr>
+                "<hr>
                 <p>
-                    <b style="font-weight: bold">[Logger] Custom Message:</b>
+                    <b style=\"font-weight: bold\">[Logger] PHP Error:</b>
                 </p>
                 <table>
                     <tbody>
@@ -196,8 +229,8 @@ class Logger
                             <td>
                                 Level:
                             </td>
-                            <td>' .
-                                $this->errorCodes[$level] . ' (' . $level . ')
+                            <td>
+                                " . $this->errorCodes[0] . " (0)
                             </td>
                         </tr>
                         <tr>
@@ -205,7 +238,7 @@ class Logger
                                 Message:
                             </td>
                             <td>
-                                ' . $msg . '
+                                $msg
                             </td>
                         </tr>
                         <tr>
@@ -213,7 +246,7 @@ class Logger
                                 File:
                             </td>
                             <td>
-                                ' . $file . '
+                                $file
                             </td>
                         </tr>
                         <tr>
@@ -221,20 +254,21 @@ class Logger
                                 Line:
                             </td>
                             <td>
-                                ' . $line . '
+                                $line
                             </td>
                         </tr>
+                        $htmlNotes
                         <tr>
                             <td>
                                 Date:
                             </td>
                             <td>
-                                ' . date($this->dateFormat, time()) . '
+                                " . date($this->dateFormat, time()) . "
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <hr>';
+                <hr>";
         }
 
         if ($this->saveCustomMessages) {
@@ -243,19 +277,21 @@ class Logger
                     level,
                     message,
                     file,
-                    line
+                    line,
+                    notes
                 ) VALUES (
-                    :level,
+                    0,
                     :message,
                     :file,
-                    :line
+                    :line,
+                    :notes
                 )
             ');
 
-            $stmt->bindParam(':level', $level);
             $stmt->bindParam(':message', $msg);
             $stmt->bindParam(':file', $file);
             $stmt->bindParam(':line', $line);
+            $stmt->bindParam(':notes', $notes);
             $stmt->execute();
 
             if ($stmt->rowCount() <= 0) {
@@ -269,21 +305,51 @@ class Logger
     /**
      * Logs errors from PHP
      *
-     * @param $level Error level
-     * @param $msg Error message
-     * @param $file File in which the error happened
-     * @param $line Line number of the error
+     * @param int $level Error level
+     * @param string $msg Error message
+     * @param string $file File in which the error happened
+     * @param string $line Line number of the error
+     * @param string[] $context Error context
+     * @param string $notes Additional information
+     *
+     * @return boolean Returns if the log entry was handled correctly
      */
-    public function logPhpError($level, $msg, $file, $line) {
+    public function logPhpError(
+        $level,
+        $msg,
+        $file,
+        $line,
+        $context = NULL,
+        $notes = NULL
+    )
+    {
         if (!$this->errorLogActiveStatus[$this->errorCodes[$level]]) {
             return;
         }
 
+        if ($notes == NULL) {
+            $notes = $this->notes;
+        }
+
         if ($this->showPhpErrors) {
+            $htmlNotes = '';
+
+            if ($notes != NULL) {
+                $htmlNotes =
+                    "<tr>
+                        <td>
+                            Notes:
+                        </td>
+                        <td>
+                            $notes
+                        </td>
+                    </tr>";
+            }
+
             echo
-                '<hr>
+                "<hr>
                 <p>
-                    <b style="font-weight: bold">[Logger] PHP Error:</b>
+                    <b style=\"font-weight: bold\">[Logger] PHP Error:</b>
                 </p>
                 <table>
                     <tbody>
@@ -291,8 +357,8 @@ class Logger
                             <td>
                                 Level:
                             </td>
-                            <td>' .
-                                $this->errorCodes[$level] . ' (' . $level . ')
+                            <td>
+                                " . $this->errorCodes[$level] . " ($level)
                             </td>
                         </tr>
                         <tr>
@@ -300,7 +366,7 @@ class Logger
                                 Message:
                             </td>
                             <td>
-                                ' . $msg . '
+                                $msg
                             </td>
                         </tr>
                         <tr>
@@ -308,7 +374,7 @@ class Logger
                                 File:
                             </td>
                             <td>
-                                ' . $file . '
+                                $file
                             </td>
                         </tr>
                         <tr>
@@ -316,20 +382,21 @@ class Logger
                                 Line:
                             </td>
                             <td>
-                                ' . $line . '
+                                $line
                             </td>
                         </tr>
+                        $htmlNotes
                         <tr>
                             <td>
                                 Date:
                             </td>
                             <td>
-                                ' . date($this->dateFormat, time()) . '
+                                " . date($this->dateFormat, time()) . "
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <hr>';
+                <hr>";
         }
 
         if ($this->savePhpErrors) {
@@ -338,12 +405,14 @@ class Logger
                     level,
                     message,
                     file,
-                    line
+                    line,
+                    notes
                 ) VALUES (
                     :level,
                     :message,
                     :file,
-                    :line
+                    :line,
+                    :notes
                 )
             ');
 
@@ -351,6 +420,7 @@ class Logger
             $stmt->bindParam(':message', $msg);
             $stmt->bindParam(':file', $file);
             $stmt->bindParam(':line', $line);
+            $stmt->bindParam(':notes', $notes);
             $stmt->execute();
 
             if ($stmt->rowCount() <= 0) {
@@ -366,7 +436,8 @@ class Logger
      * Logs errors from PHP causing the script to stop (like FATAL ERRORs)
      *
      */
-    public function logPhpShutdownError() {
+    public function logPhpShutdownError()
+    {
         $error = error_get_last();
 
         if (!empty($error)) {
@@ -374,7 +445,9 @@ class Logger
                 $error['type'],
                 $error['message'],
                 $error['file'],
-                $error['line']
+                $error['line'],
+                NULL,
+                $this->notes
             );
         }
     }
