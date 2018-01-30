@@ -14,7 +14,7 @@ $logger = new Logger($pdo);
 Execute the function for the table creation once.
 
 ```php
-$logger->createTables();
+$logger->createDatabaseTables();
 ```
 
 To use the logger you need a [PDO](http://php.net/manual/en/pdo.connections.php) connection to communicate with your database.
