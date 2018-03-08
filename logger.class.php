@@ -3,8 +3,8 @@
  * Class: Logger
  * Author: adistoe
  * Website: https://www.adistoe.ch
- * Version: 1.0.1
- * Last Update: Thursday, 23 January 2018
+ * Version: 1.0.2
+ * Last Update: Thursday, 08 March 2018
  * Description:
  *    A class to log php errors, custom messages and more.
  *
@@ -123,6 +123,26 @@ class Logger
             set_error_handler(array($this, 'logPhpError'));
             register_shutdown_function(array($this, 'logPhpShutdownError'));
         }
+    }
+
+    /**
+     * Clear / reset log table
+     * This removes every log entry and resets the auto_increment counter
+     *
+     * Hint: Requires the DROP privilege.
+     *
+     * @return boolean Returns if log was cleared
+     */
+    public function clearLog() {
+        $stmt = $this->db->prepare('
+            TRUNCATE ' . $this->prefix . 'log' . $this->suffix . '
+        ');
+
+        if ($stmt->execute()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
