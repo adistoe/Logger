@@ -10,6 +10,10 @@
  *
  * Copyright by adistoe | All rights reserved.
  */
+namespace adistoe;
+
+use PDO;
+
 class Logger
 {
     /**
