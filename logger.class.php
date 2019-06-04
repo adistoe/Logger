@@ -184,6 +184,7 @@ class Logger
         $limit = ''
     ) {
         $log = Array();
+        $limit = ($limit ? 'LIMIT ' . $limit : '');
         $stmt = $this->db->prepare("
             SELECT
                 *
