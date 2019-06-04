@@ -56,7 +56,7 @@ class Logger
     // =======================
 
     // Specifies, which errors should be logged and which ignored
-    private $errorLogActiveStatus = Array(
+    private $errorLogActiveStatus = array(
         'E_ERROR'             => true,
         'E_WARNING'           => true,
         'E_PARSE'             => true,
@@ -87,7 +87,7 @@ class Logger
     // Do not touch these variables
     private $db;
     private $notes;
-    private $errorCodes = Array(
+    private $errorCodes = array(
         0     => 'CUSTOM_LOG_MESSAGE',
         1     => 'E_ERROR',
         2     => 'E_WARNING',
@@ -114,7 +114,7 @@ class Logger
      * @param object $pdo Database object (PDO)
      * @param object $notes Additional information to be saved on logging
      */
-    public function __construct($pdo, $notes = NULL)
+    public function __construct($pdo, $notes = null)
     {
         $this->db = $pdo;
         $this->notes = $notes;
@@ -133,7 +133,8 @@ class Logger
      *
      * @return boolean Returns if log was cleared
      */
-    public function clearLog() {
+    public function clearLog()
+    {
         $stmt = $this->db->prepare('
             TRUNCATE ' . $this->prefix . 'log' . $this->suffix . '
         ');
@@ -183,8 +184,8 @@ class Logger
         $orderDirection = 'DESC',
         $limit = ''
     ) {
-        $log = Array();
         $limit = ($limit ? 'LIMIT ' . $limit : '');
+        $log = array();
         $stmt = $this->db->prepare("
             SELECT
                 *
@@ -215,19 +216,18 @@ class Logger
      */
     public function logCustomMessage(
         $msg,
-        $file = NULL,
-        $line = NULL,
-        $notes = NULL
-    )
-    {
-        if ($notes == NULL) {
+        $file = null,
+        $line = null,
+        $notes = null
+    ) {
+        if ($notes == null) {
             $notes = $this->notes;
         }
 
         if ($this->showCustomMessages) {
             $htmlNotes = '';
 
-            if ($notes != NULL) {
+            if ($notes != null) {
                 $htmlNotes =
                     "<tr>
                         <td>
@@ -340,22 +340,21 @@ class Logger
         $msg,
         $file,
         $line,
-        $context = NULL,
-        $notes = NULL
-    )
-    {
+        $context = null,
+        $notes = null
+    ) {
         if (!$this->errorLogActiveStatus[$this->errorCodes[$level]]) {
             return;
         }
 
-        if ($notes == NULL) {
+        if ($notes == null) {
             $notes = $this->notes;
         }
 
         if ($this->showPhpErrors) {
             $htmlNotes = '';
 
-            if ($notes != NULL) {
+            if ($notes != null) {
                 $htmlNotes =
                     "<tr>
                         <td>
@@ -467,7 +466,7 @@ class Logger
                 $error['message'],
                 $error['file'],
                 $error['line'],
-                NULL,
+                null,
                 $this->notes
             );
         }
